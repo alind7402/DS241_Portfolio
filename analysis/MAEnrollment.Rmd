@@ -1,0 +1,70 @@
+---
+title: "MA131 and MA132 Enrollment Prediction"
+author: "Alex Lindquist and Nate Smullen"
+date: "10/3/2022"
+output: html_notebook
+---
+
+Class play with MA131 and MA132 enrollment data.
+
+##Load Packages
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+library(ggpubr)
+```
+
+##Load Enrollment Data
+
+```{r}
+thisfile=here("data_raw","CU_ACAD_DEPT_WHEN_OFF_ENRL_22740.csv")
+
+df1=read_csv(thisfile, skip = 1) %>% clean_names() %>%
+  filter(subject == "MA", catalog == 131|catalog == 132|catalog == 120, section < 10) %>% 
+  select(c(catalog, section, term_7, term_8, tot_enrl)) %>%
+  mutate(acedemic_year = round((term_7 - 4000) / 10) + 2000) %>%
+  distinct()
+
+```
+
+```{r}
+df2 = df1 %>% separate(term_8, c("semester", "year"), sep=" ", remove=FALSE) %>%
+  filter(semester != "Summer") %>%
+  group_by(acedemic_year, term_7, semester, catalog) %>%
+  summarize(tot_enrl = sum(tot_enrl)) %>%
+  ungroup()
+
+```
+
+
+```{r}
+df2 %>% 
+  filter(catalog==132, semester=="Spring") %>%
+  ggplot(aes(x=acedemic_year, y=tot_enrl)) + geom_point()
+```
+
+```{r}
+df2w = df2 %>% pivot_wider(id_cols = acedemic_year, names_from = 
+                             c(catalog, semester), values_from = tot_enrl)
+
+df2w %>% filter(`132_Spring`>0) %>%
+  ggplot(aes(`131_Fall`, `132_Spring`)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) +
+  stat_regline_equation(label.x=440, label.y=450)
+
+lm(formula = `131_Fall`~`132_Spring`, data = df2w)
+```
+
+Using the lm() function, we were not able to get the accurate equation of the 
+line on the graph. Instead, we found another solution where we just display
+the equation on the graph. This is not the solution we were hoping for.
+
+```{r}
+#Applying the model
+-150 + 1.1*df2w$`131_Fall`[8]
+```
+
+ 

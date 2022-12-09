@@ -1,0 +1,70 @@
+---
+title: "BTS Flights"
+author: "Alex Lindquist"
+date: "9/13/2022"
+output: html_notebook
+---
+
+Homework with BTS flight data from 2019.
+
+##Loading Packages
+```{r}
+library(nycflights13)
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+##Loading Data
+```{r}
+thisfile=here("data_raw","DL_SelectFields.zip")
+
+df2019=read_csv(thisfile) %>% clean_names()
+```
+
+##Filtering
+```{r}
+df9=df2019 %>% filter(passengers>0,origin=="LGA")
+
+df9 %>% ggplot(aes(month)) + geom_bar()
+```
+
+```{r}
+df9 %>% ggplot(aes(month)) + geom_bar(aes(weight=departures_performed))
+```
+Above plot is based on the amount of departures per month.
+
+```{r}
+df9 %>% ggplot(aes(month)) + geom_bar(aes(weight=passengers))
+```
+Above plot is based on the amount of passengers riding per month.
+
+
+```{r}
+df9 %>% ggplot(aes(month,fill=carrier_name)) + geom_bar(aes(weight=departures_performed))
+```
+```{r}
+df10=df2019 %>% filter(passengers>0,origin=="LGA" | dest =="LGA")
+
+df10 %>% ggplot(aes(month)) + geom_bar(aes(weight=passengers))
+```
+
+```{r}
+df11 = df10 %>% select( seats, month,passengers, carrier_name, dest, origin)
+
+df13=df11 %>% mutate(percent_loading = passengers/seats*100)
+
+df15 = df2019 %>% filter(passengers>0, origin=="LGA" | dest =="LGA") %>% group_by(month, carrier_name) %>% summarize(total_pass=sum(passengers), num_flights= sum(departures_performed)) %>% mutate(avg_pass_per_flights = total_pass/num_flights)
+
+```
+
+```{r}
+df15 %>% ggplot(aes(month,avg_pass_per_flights, color=carrier_name)) + geom_line()
+```
+
+```{r}
+df15_1 = df2019 %>% filter(passengers>0, origin=="LGA" | dest =="LGA") %>% group_by(month, carrier_name) %>% summarize(total_seats=sum(seats), num_flights= sum(departures_performed)) %>% mutate(avg_seats_per_flights = total_seats/num_flights)
+
+df15_1 %>% ggplot(aes(month,avg_seats_per_flights, color=carrier_name)) + geom_line()
+
+```

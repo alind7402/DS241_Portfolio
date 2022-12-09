@@ -1,0 +1,140 @@
+---
+title: "Bikeshare Tutorial"
+author: "Alex Lindquist"
+date: "10/25/2022"
+---
+
+##Load Packages
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+library(maps)
+library(lubridate)
+library(ggpubr)
+```
+
+
+
+ 
+```{r}
+DC <- map_data("state") %>% filter(region== "district of columbia")
+
+```
+
+
+```{r}
+#ggplot(tripdata, mapping = aes(x = start_lng, y = start_lat)) +
+#  geom_polygon(data = DC, aes(x=long, y = lat, group = group), fill="grey", alpha=0.5) +
+#  geom_point(alpha = 0.01)
+```
+
+```{r}
+thisfile = here("data_raw","202209-capitalbikeshare-tripdata.csv")
+tripdata <- read_csv(thisfile) %>% clean_names()
+```
+
+```{r}
+tripdata <- tripdata #%>% filter(started_at < '2022-09-01 20:00:00')
+```
+
+```{r}
+tripdata1 <- tripdata %>% 
+  mutate(duration=as.numeric((ended_at - started_at)/60),
+                              hour_of_day=hour(started_at)) %>%
+  filter(duration<100, duration>0)
+```
+
+```{r}
+tripdata1 %>% slice_sample(n=1000) %>% 
+  ggplot(mapping = aes(x=hour_of_day, y=duration)) + 
+  geom_point() + 
+  geom_smooth(method='lm', se = FALSE) + 
+  stat_regline_equation(label.x=0, label.y=75)
+
+summary(lm(duration ~ hour_of_day, data = tripdata1))
+```
+
+
+```{r}
+ggplot(tripdata1, mapping = aes(x=duration)) +
+  geom_histogram(bins=300) +
+  facet_wrap(~day_of_week)
+```
+
+
+
+```{r}
+tripdata1  %>% filter(month(started_at)==9, month(ended_at)==9) %>%
+  select(start=started_at, end=ended_at) %>%
+  pivot_longer(start:end, names_to = "type", values_to = "t") %>%
+  arrange(t) %>%
+  mutate(increment=case_when(
+    type=="start"~1,
+    type=="end" ~ -1
+  )) %>%
+  mutate(riders=cumsum(increment)) %>%
+  ggplot(aes(t,riders)) + geom_step() +
+  facet_wrap(~mday(t), scales = "free_x", ncol = 7)
+```
+1. There was a storm that hit DC during the 11th and 12th, possibly explaining the 
+decreased ridership during those days
+
+2. During the weekdays, there seems to be two peaks in ridership, whereas on the
+weekends the ridership peaks in the afternoon, probably because of commuters.
+
+3. Monday the 5th was a holiday, so it did not adhere to the weekday pattern.
+
+```{r}
+tripdata1  %>% filter(month(started_at)==9, month(ended_at)==9) %>%
+  select(start=started_at, end=ended_at, member_casual) %>%
+  pivot_longer(start:end, names_to = "type", values_to = "t") %>%
+  arrange(t) %>%
+  mutate(increment=case_when(
+    type=="start"~1,
+    type=="end" ~ -1
+  )) %>%
+  group_by(member_casual) %>%
+  mutate(riders=cumsum(increment)) %>% 
+  #filter(mday(t)<=7) %>%
+  ggplot(aes(t,riders, color=member_casual)) + geom_step() +
+  facet_wrap(~mday(t), scales = "free_x", ncol = 7)
+```
+
+```{r}
+tripdata1 %>% 
+  filter(month(started_at)==9, month(ended_at)==9, day(started_at)==1) %>% 
+  ggplot(aes(x=duration)) + geom_histogram() +
+  facet_wrap(~hour(started_at), scales="free_x", ncol=6)
+```
+
+```{r}
+tripdata1 %>%
+  filter(month(started_at)==9, month(ended_at)==9) %>%
+  ggplot(aes(x=duration)) + geom_histogram() +
+  facet_wrap(~day_of_week, scales="free_x", ncol=4)
+```
+
+
+```{r}
+library(gbfs)
+```
+
+
+```{r}
+df_cities=get_gbfs_cities()
+```
+
+```{r}
+cabidf_stations = get_station_information("cabi")
+cabidf_freebikes = get_free_bike_status("cabi")
+```
+
+```{r}
+cabidf_freebikes %>% ggplot(aes(x=lon, y=lat)) + geom_point() + 
+  geom_polygon(data = DC, aes(x=long, y = lat, group = group), 
+               fill="grey", alpha=0.5) 
+```
+
+

@@ -1,0 +1,85 @@
+---
+title: "NYC Flights"
+author: "Alex Lindquist"
+date: "9/9/2022"
+output: html_notebook
+---
+
+Class play with NYC flights data.
+
+##Load Packages
+
+```{r}
+library(nycflights13)
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+##Load Flight Data
+
+```{r}
+df1 = flights
+```
+
+##Class Work
+
+```{r}
+df2=df1 %>%
+  filter(origin == "MIA", month == 9)
+```
+
+```{r}
+df3=df1 %>%
+  filter(dest=="MIA", month==9)
+```
+
+```{r}
+df4=df1 %>%
+  filter(month==1, dest=="MIA")
+```
+
+```{r}
+df5=df1 %>%
+  filter(month==7, dest=="MIA")
+```
+
+```{r}
+df6=df1 %>%
+  filter(dest=="MIA")
+
+df6 %>% ggplot(aes(month)) + geom_bar()
+```
+Analyzing the graph above, we note:
+
+* December has the most flights, perhaps due to holiday.
+* Feb is low, perhaps due to fewer days in Feb.
+* Flight numbers seem to correlate with days in the month.
+
+```{r}
+df7=df1 %>%
+  filter(dest %in% c("LAX", "SAN", "SFO", "ATL", "ORD", "MIA"))
+
+df7 %>% ggplot(aes(month)) + geom_bar()
+```
+
+```{r}
+df7=df1 %>%
+  filter(dest %in% c("LAX", "SAN", "SFO", "ATL", "ORD", "MIA"))
+
+df7 %>% ggplot(aes(x = month, fill = dest)) + geom_bar()
+```
+
+```{r}
+df7 %>% ggplot(aes(x = month, fill = dest)) + geom_bar() + facet_wrap(~dest)
+```
+Observation from above graph:
+
+* San Francisco is a smaller airport than the others.
+* ORD gets significantly more traffic during the summer months.
+* MIA is _unusually_ flat.
+* ORD, LAX, SFO patterns appear to be similar; low in winter, high in summer.
+* ATL is flat, perhaps because it's a hub.
+* Feb is low, because of fewer days and winter.
+
+
